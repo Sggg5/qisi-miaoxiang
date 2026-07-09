@@ -30,6 +30,13 @@
         :idea="idea"
       />
     </main>
+
+    <div class="footer-tools">
+      <button class="tool-link" @click="exportData">导出数据</button>
+      <label class="tool-link" @click="$refs.fileInput.click()">导入数据
+        <input ref="fileInput" type="file" accept=".json" hidden @change="importData" />
+      </label>
+    </div>
   </div>
 </template>
 
@@ -47,6 +54,7 @@ export default {
     const store = useIdeaStore()
     const initialized = ref(false)
     const inputText = ref('')
+    const fileInput = ref(null)
 
     onMounted(() => {
       store.load()
@@ -66,7 +74,40 @@ export default {
       inputText.value = ''
     }
 
-    return { store, initialized, inputText, submitIdea }
+    function exportData() {
+      const blob = new Blob([JSON.stringify(store.ideas, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `qisi-miaoxiang-${new Date().toISOString().slice(0, 10)}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+    }
+
+    function importData(e) {
+      const file = e.target.files[0]
+      if (!file) return
+      const reader = new FileReader()
+      reader.onload = (ev) => {
+        try {
+          const data = JSON.parse(ev.target.result)
+          if (Array.isArray(data)) {
+            store.ideas = data
+            store.save()
+            store.refresh()
+            alert(`导入成功，共 ${data.length} 条想法`)
+          } else {
+            alert('数据格式不对，请选择导出的 JSON 文件')
+          }
+        } catch {
+          alert('文件解析失败')
+        }
+      }
+      reader.readAsText(file)
+      e.target.value = ''
+    }
+
+    return { store, initialized, inputText, submitIdea, exportData, importData, fileInput }
   }
 }
 </script>
@@ -75,7 +116,7 @@ export default {
 .app {
   max-width: 700px;
   margin: 0 auto;
-  padding: 32px 20px 80px;
+  padding: 32px 20px 60px;
 }
 
 .header {
@@ -155,8 +196,29 @@ export default {
   font-size: 0.9rem;
 }
 
+.footer-tools {
+  margin-top: 40px;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.tool-link {
+  all: unset;
+  cursor: pointer;
+  font-size: 12px;
+  color: #bbb;
+  transition: color 0.15s;
+}
+
+.tool-link:hover {
+  color: #555;
+}
+
 @media (max-width: 600px) {
-  .app { padding: 20px 16px 60px; }
+  .app { padding: 20px 16px 40px; }
   .title { font-size: 1.35rem; }
   .header { margin-bottom: 18px; }
   .input-area { margin-bottom: 22px; }
