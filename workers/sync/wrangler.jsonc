@@ -1,0 +1,11 @@
+﻿{
+  "name": "qisi-miaoxiang-sync",
+  "main": "src/index.js",
+  "compatibility_date": "2025-04-01",
+  "kv_namespaces": [
+    {
+      "binding": "SYNC_KV",
+      "id": "06d8a07fe05f46d8b24497f3626df135"
+    }
+  ]
+}

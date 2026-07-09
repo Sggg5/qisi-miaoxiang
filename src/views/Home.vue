@@ -32,8 +32,20 @@
     </main>
 
     <div class="footer-tools">
-      <button class="tool-link" @click="exportData">导出数据</button>
-      <label class="tool-link" @click="$refs.fileInput.click()">导入数据
+      <details class="sync-section">
+        <summary class="sync-toggle">☁️ 云同步</summary>
+        <div class="sync-body">
+          <input class="sync-input" v-model="syncKey" type="password" placeholder="设置同步密钥（自己记好）" @input="saveSyncKey" />
+          <div class="sync-actions">
+            <button class="tool-link" @click="uploadData" :disabled="!syncKey || syncing">上传到云端</button>
+            <button class="tool-link" @click="downloadData" :disabled="!syncKey || syncing">从云端下载</button>
+          </div>
+          <p class="sync-status" v-if="syncStatus">{{ syncStatus }}</p>
+        </div>
+      </details>
+
+      <button class="tool-link" @click="exportData">导出 JSON</button>
+      <label class="tool-link">导入 JSON
         <input ref="fileInput" type="file" accept=".json" hidden @change="importData" />
       </label>
     </div>
@@ -47,6 +59,8 @@ import PRESET_IDEAS from '../data/presets'
 import IdeaCard from '../components/IdeaCard.vue'
 import FilterBar from '../components/FilterBar.vue'
 
+const SYNC_URL = 'https://qisi-miaoxiang-sync.schuyongxing.workers.dev'
+
 export default {
   name: 'Home',
   components: { IdeaCard, FilterBar },
@@ -55,6 +69,9 @@ export default {
     const initialized = ref(false)
     const inputText = ref('')
     const fileInput = ref(null)
+    const syncKey = ref(localStorage.getItem('qisi-sync-key') || '')
+    const syncing = ref(false)
+    const syncStatus = ref('')
 
     onMounted(() => {
       store.load()
@@ -72,6 +89,51 @@ export default {
       if (!inputText.value.trim()) return
       store.add(inputText.value)
       inputText.value = ''
+    }
+
+    function saveSyncKey() {
+      localStorage.setItem('qisi-sync-key', syncKey.value)
+    }
+
+    async function uploadData() {
+      syncing.value = true
+      syncStatus.value = '上传中……'
+      try {
+        const res = await fetch(SYNC_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Sync-Key': syncKey.value },
+          body: JSON.stringify({ ideas: store.ideas })
+        })
+        const data = await res.json()
+        if (res.ok) syncStatus.value = `✓ 上传成功（${data.count} 条）`
+        else syncStatus.value = '✗ 上传失败：' + (data.error || res.status)
+      } catch (e) {
+        syncStatus.value = '✗ 连接失败：' + e.message
+      }
+      syncing.value = false
+    }
+
+    async function downloadData() {
+      syncing.value = true
+      syncStatus.value = '下载中……'
+      try {
+        const res = await fetch(SYNC_URL, {
+          method: 'GET',
+          headers: { 'X-Sync-Key': syncKey.value }
+        })
+        const data = await res.json()
+        if (res.ok && Array.isArray(data.ideas)) {
+          store.ideas = data.ideas
+          store.save()
+          store.refresh()
+          syncStatus.value = `✓ 下载成功（${data.ideas.length} 条）`
+        } else {
+          syncStatus.value = '✗ 下载失败：' + (data.error || res.status)
+        }
+      } catch (e) {
+        syncStatus.value = '✗ 连接失败：' + e.message
+      }
+      syncing.value = false
     }
 
     function exportData() {
@@ -96,18 +158,14 @@ export default {
             store.save()
             store.refresh()
             alert(`导入成功，共 ${data.length} 条想法`)
-          } else {
-            alert('数据格式不对，请选择导出的 JSON 文件')
-          }
-        } catch {
-          alert('文件解析失败')
-        }
+          } else { alert('数据格式不对') }
+        } catch { alert('文件解析失败') }
       }
       reader.readAsText(file)
       e.target.value = ''
     }
 
-    return { store, initialized, inputText, submitIdea, exportData, importData, fileInput }
+    return { store, initialized, inputText, submitIdea, exportData, importData, fileInput, syncKey, syncing, syncStatus, saveSyncKey, uploadData, downloadData }
   }
 }
 </script>
@@ -119,9 +177,7 @@ export default {
   padding: 32px 20px 60px;
 }
 
-.header {
-  margin-bottom: 24px;
-}
+.header { margin-bottom: 24px; }
 
 .title {
   font-size: 1.5rem;
@@ -130,14 +186,9 @@ export default {
   margin-bottom: 4px;
 }
 
-.subtitle {
-  font-size: 0.88rem;
-  color: #aaa;
-}
+.subtitle { font-size: 0.88rem; color: #aaa; }
 
-.input-area {
-  margin-bottom: 28px;
-}
+.input-area { margin-bottom: 28px; }
 
 .input-area textarea {
   width: 100%;
@@ -154,13 +205,8 @@ export default {
   display: block;
 }
 
-.input-area textarea:focus {
-  border-color: #bbb;
-}
-
-.input-area textarea::placeholder {
-  color: #bbb;
-}
+.input-area textarea:focus { border-color: #bbb; }
+.input-area textarea::placeholder { color: #bbb; }
 
 .input-actions {
   display: flex;
@@ -180,14 +226,8 @@ export default {
   transition: background 0.15s;
 }
 
-.btn-submit:hover {
-  background: #444;
-}
-
-.btn-submit:disabled {
-  background: #ccc;
-  cursor: default;
-}
+.btn-submit:hover { background: #444; }
+.btn-submit:disabled { background: #ccc; cursor: default; }
 
 .empty {
   text-align: center;
@@ -203,6 +243,7 @@ export default {
   display: flex;
   gap: 16px;
   justify-content: center;
+  flex-wrap: wrap;
 }
 
 .tool-link {
@@ -213,8 +254,53 @@ export default {
   transition: color 0.15s;
 }
 
-.tool-link:hover {
-  color: #555;
+.tool-link:hover { color: #555; }
+.tool-link:disabled { opacity: 0.3; cursor: default; }
+
+.sync-section {
+  width: 100%;
+  font-size: 12px;
+  color: #bbb;
+}
+
+.sync-toggle {
+  cursor: pointer;
+  color: #bbb;
+  text-align: center;
+  font-size: 12px;
+  transition: color 0.15s;
+}
+
+.sync-toggle:hover { color: #555; }
+
+.sync-body {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sync-input {
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 13px;
+  background: #fff;
+  color: #222;
+  outline: none;
+}
+
+.sync-input:focus { border-color: #aaa; }
+
+.sync-actions {
+  display: flex;
+  gap: 14px;
+}
+
+.sync-status {
+  margin: 0;
+  font-size: 12px;
+  color: #888;
 }
 
 @media (max-width: 600px) {
