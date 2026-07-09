@@ -1,153 +1,147 @@
 ﻿<template>
-  <div class="home">
-    <header class="archive-header">
-      <h1 class="site-title">奇思妙想</h1>
-      <p class="site-subtitle">先把想法收起来，等它冷却后再决定。</p>
-      <div class="header-actions">
-        <button class="btn btn-primary" @click="store.showForm = true">+ 收容新想法</button>
-      </div>
+  <div class="app">
+    <header class="header">
+      <h1 class="title">奇思妙想</h1>
+      <p class="subtitle">把突然冒出来的想法先放一放。</p>
     </header>
+
+    <div class="input-area">
+      <textarea
+        v-model="inputText"
+        placeholder="输入一个突然冒出来的想法……"
+        rows="2"
+        @keydown.ctrl.enter="submitIdea"
+        @keydown.meta.enter="submitIdea"
+      ></textarea>
+      <div class="input-actions">
+        <span class="char-count" v-if="inputText.length > 0">{{ inputText.length }}</span>
+        <button class="btn btn-primary" @click="submitIdea" :disabled="!inputText.trim()">收起来</button>
+      </div>
+    </div>
 
     <FilterBar />
 
-    <section class="idea-list" v-if="initialized">
-      <div v-if="store.filteredIdeas.length === 0" class="empty-state">
-        <div class="empty-icon">📂</div>
-        <p>收容所里空空的……</p>
-        <p class="empty-hint">试试调整筛选条件，或者收容一个新想法。</p>
+    <main class="list" v-if="initialized">
+      <div v-if="store.filteredIdeas.length === 0" class="empty">
+        <p v-if="store.filter === 'all'">还没有想法，写一个试试。</p>
+        <p v-else>这里什么都没有。</p>
       </div>
       <IdeaCard
         v-for="idea in store.filteredIdeas"
         :key="idea.id"
         :idea="idea"
       />
-    </section>
-
-    <section class="stats-bar" v-if="initialized">
-      <span>收容总数：{{ store.ideas.length }}</span>
-      <span>观察中：{{ store.ideas.filter(i => i.status === 'observing').length }}</span>
-      <span>可释放：{{ store.ideas.filter(i => i.status === 'releasable').length }}</span>
-    </section>
-
-    <IdeaForm v-if="store.showForm" @close="store.showForm = false" />
+    </main>
   </div>
 </template>
 
 <script>
 import { ref, onMounted } from 'vue'
-import { useIdeaStore, TYPE_LABELS, STATUS_LABELS, DANGER_LEVELS } from '../stores/ideas'
+import { useIdeaStore } from '../stores/ideas'
 import PRESET_IDEAS from '../data/presets'
 import IdeaCard from '../components/IdeaCard.vue'
-import IdeaForm from '../components/IdeaForm.vue'
 import FilterBar from '../components/FilterBar.vue'
 
 export default {
   name: 'Home',
-  components: { IdeaCard, IdeaForm, FilterBar },
+  components: { IdeaCard, FilterBar },
   setup() {
     const store = useIdeaStore()
     const initialized = ref(false)
+    const inputText = ref('')
 
     onMounted(() => {
-      store.loadIdeas()
+      store.load()
       if (store.ideas.length === 0) {
         for (const idea of PRESET_IDEAS) {
           store.ideas.push({ ...idea })
         }
-        store.saveIdeas()
+        store.save()
       }
-      store.refreshStatuses()
+      store.refresh()
       initialized.value = true
     })
 
-    return { store, initialized }
+    function submitIdea() {
+      if (!inputText.value.trim()) return
+      store.add(inputText.value)
+      inputText.value = ''
+    }
+
+    return { store, initialized, inputText, submitIdea }
   }
 }
 </script>
 
 <style scoped>
-.home {
-  max-width: 800px;
+.app {
+  max-width: 720px;
   margin: 0 auto;
-  padding: 20px 16px 100px;
+  padding: 48px 20px 80px;
 }
 
-.archive-header {
-  text-align: center;
-  padding: 40px 0 30px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 24px;
+.header {
+  margin-bottom: 32px;
 }
 
-.site-title {
-  font-size: 2.2rem;
-  font-weight: 700;
-  color: var(--accent);
-  letter-spacing: 6px;
-  margin: 0 0 8px;
-  text-shadow: 0 0 20px rgba(255, 255, 255, 0.08);
+.title {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #222;
+  margin-bottom: 6px;
+  letter-spacing: -0.3px;
 }
 
-.site-subtitle {
-  color: var(--gray);
-  font-size: 0.95rem;
-  margin: 0 0 20px;
-  letter-spacing: 2px;
+.subtitle {
+  font-size: 0.9rem;
+  color: #999;
 }
 
-.header-actions {
-  margin-top: 16px;
+.input-area {
+  margin-bottom: 32px;
 }
 
-.stats-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: var(--bg-card);
-  border-top: 1px solid var(--border);
-  padding: 10px 20px;
+.input-area textarea {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #fff;
+  color: #222;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  resize: vertical;
+  transition: border-color 0.15s;
+}
+
+.input-area textarea:focus {
+  border-color: #aaa;
+}
+
+.input-actions {
   display: flex;
-  gap: 24px;
-  justify-content: center;
-  font-size: 0.8rem;
-  color: var(--gray);
-  z-index: 10;
-  backdrop-filter: blur(8px);
-}
-
-.empty-state {
-  text-align: center;
-  padding: 60px 20px;
-  color: var(--gray);
-}
-
-.empty-icon {
-  font-size: 3rem;
-  margin-bottom: 16px;
-  opacity: 0.5;
-}
-
-.empty-hint {
-  font-size: 0.85rem;
-  opacity: 0.6;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
   margin-top: 8px;
 }
 
+.char-count {
+  font-size: 0.75rem;
+  color: #bbb;
+}
+
+.empty {
+  text-align: center;
+  padding: 48px 0;
+  color: #bbb;
+  font-size: 0.9rem;
+}
+
 @media (max-width: 600px) {
-  .site-title {
-    font-size: 1.6rem;
-    letter-spacing: 4px;
-  }
-  .home {
-    padding: 16px 12px 80px;
-  }
-  .stats-bar {
-    gap: 12px;
-    font-size: 0.75rem;
-    padding: 8px 12px;
-  }
+  .app { padding: 28px 16px 60px; }
+  .title { font-size: 1.4rem; }
+  .header { margin-bottom: 24px; }
+  .input-area { margin-bottom: 24px; }
 }
 </style>
-
-
