@@ -1,21 +1,22 @@
 ﻿<template>
   <div class="card">
     <p class="content">{{ idea.content }}</p>
-    <div class="meta">
-      <span class="status" :class="idea.status">
+
+    <p class="status-line">
+      <template v-if="idea.status === 'cooling'">
+        冷却中 · {{ store.remainingDays(idea) }}天后可处理
+      </template>
+      <template v-else-if="idea.status === 'ready'">
+        可处理 · 可以决定去留
+      </template>
+      <template v-else>
         {{ STATUS_LABELS[idea.status] }}
-        <template v-if="idea.status === 'cooling'">
-          · {{ store.remainingDays(idea) }} 天后可处理
-        </template>
-      </span>
-    </div>
+      </template>
+    </p>
+
     <div class="actions" v-if="idea.status === 'ready'">
-      <button class="btn btn-sm btn-ghost" @click="store.updateStatus(idea.id, 'archived')">归档</button>
-      <button class="btn btn-sm" @click="store.updateStatus(idea.id, 'released')">释放</button>
-    </div>
-    <div class="actions archived-actions" v-if="idea.status === 'released'">
-      <span class="done-label">已释放</span>
-      <button class="btn btn-sm btn-ghost" @click="store.updateStatus(idea.id, 'archived')">归档</button>
+      <button class="btn-link" @click="store.updateStatus(idea.id, 'archived')">归档</button>
+      <button class="btn-link btn-release" @click="store.updateStatus(idea.id, 'released')">释放</button>
     </div>
   </div>
 </template>
@@ -32,39 +33,52 @@ export default {
 <style scoped>
 .card {
   background: #fff;
-  border-radius: 6px;
-  padding: 16px 20px;
-  margin-bottom: 10px;
-  border: 1px solid #eee;
+  border: 1px solid #e8e2d8;
+  border-radius: 8px;
+  padding: 18px 20px;
+  margin-bottom: 12px;
 }
 
 .content {
-  font-size: 0.92rem;
-  line-height: 1.6;
+  font-size: 16px;
+  line-height: 1.55;
   color: #222;
-  margin-bottom: 10px;
+  margin: 0 0 10px;
 }
 
-.meta {
-  font-size: 0.8rem;
-  color: #bbb;
-  margin-bottom: 8px;
+.status-line {
+  font-size: 13px;
+  color: #8a8a8a;
+  margin: 0 0 10px;
 }
 
-.status { display: inline-flex; align-items: center; gap: 4px; }
-.status.cooling { color: #999; }
-.status.ready { color: #222; font-weight: 500; }
-.status.released { color: #bbb; }
-.status.archived { color: #ccc; }
+.actions {
+  display: flex;
+  gap: 12px;
+}
 
-.actions { display: flex; gap: 6px; }
+.btn-link {
+  all: unset;
+  cursor: pointer;
+  font-size: 13px;
+  color: #999;
+  transition: color 0.15s;
+}
 
-.done-label { font-size: 0.78rem; color: #bbb; line-height: 1.8; margin-right: auto; }
+.btn-link:hover {
+  color: #222;
+}
 
-.archived-actions { justify-content: space-between; }
+.btn-release {
+  color: #222;
+  font-weight: 500;
+}
+
+.btn-release:hover {
+  color: #000;
+}
 
 @media (max-width: 600px) {
-  .card { padding: 14px 16px; }
-  .content { font-size: 0.9rem; }
+  .card { padding: 16px 16px; margin-bottom: 10px; }
 }
 </style>

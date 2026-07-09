@@ -9,13 +9,11 @@
       <textarea
         v-model="inputText"
         placeholder="输入一个突然冒出来的想法……"
-        rows="2"
         @keydown.ctrl.enter="submitIdea"
         @keydown.meta.enter="submitIdea"
       ></textarea>
       <div class="input-actions">
-        <span class="char-count" v-if="inputText.length > 0">{{ inputText.length }}</span>
-        <button class="btn btn-primary" @click="submitIdea" :disabled="!inputText.trim()">收起来</button>
+        <button class="btn-submit" :disabled="!inputText.trim()" @click="submitIdea">收起来</button>
       </div>
     </div>
 
@@ -75,60 +73,79 @@ export default {
 
 <style scoped>
 .app {
-  max-width: 720px;
+  max-width: 700px;
   margin: 0 auto;
-  padding: 48px 20px 80px;
+  padding: 32px 20px 80px;
 }
 
 .header {
-  margin-bottom: 32px;
+  margin-bottom: 24px;
 }
 
 .title {
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   font-weight: 600;
   color: #222;
-  margin-bottom: 6px;
-  letter-spacing: -0.3px;
+  margin-bottom: 4px;
 }
 
 .subtitle {
-  font-size: 0.9rem;
-  color: #999;
+  font-size: 0.88rem;
+  color: #aaa;
 }
 
 .input-area {
-  margin-bottom: 32px;
+  margin-bottom: 28px;
 }
 
 .input-area textarea {
   width: 100%;
-  padding: 14px 16px;
+  height: 72px;
+  padding: 12px 14px;
   border: 1px solid #ddd;
-  border-radius: 6px;
+  border-radius: 8px;
   background: #fff;
   color: #222;
   font-size: 0.92rem;
-  line-height: 1.6;
-  resize: vertical;
+  line-height: 1.5;
+  resize: none;
   transition: border-color 0.15s;
+  display: block;
 }
 
 .input-area textarea:focus {
-  border-color: #aaa;
+  border-color: #bbb;
+}
+
+.input-area textarea::placeholder {
+  color: #bbb;
 }
 
 .input-actions {
   display: flex;
   justify-content: flex-end;
-  align-items: center;
-  gap: 10px;
   margin-top: 8px;
 }
 
-.char-count {
-  font-size: 0.75rem;
-  color: #bbb;
+.btn-submit {
+  padding: 8px 22px;
+  background: #222;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-submit:hover {
+  background: #444;
+}
+
+.btn-submit:disabled {
+  background: #ccc;
+  cursor: default;
 }
 
 .empty {
@@ -139,9 +156,9 @@ export default {
 }
 
 @media (max-width: 600px) {
-  .app { padding: 28px 16px 60px; }
-  .title { font-size: 1.4rem; }
-  .header { margin-bottom: 24px; }
-  .input-area { margin-bottom: 24px; }
+  .app { padding: 20px 16px 60px; }
+  .title { font-size: 1.35rem; }
+  .header { margin-bottom: 18px; }
+  .input-area { margin-bottom: 22px; }
 }
 </style>
